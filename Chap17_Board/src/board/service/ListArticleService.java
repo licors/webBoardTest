@@ -21,7 +21,7 @@ public class ListArticleService {
 	
 	public static final int COUNT_PER_PAGE = 10;
 	
-	public ArticleListModel getArticleList(int requestPageNumber) {
+	public ArticleListModel getArticleList(int requestPageNumber, String search, int searchn) {
 		if(requestPageNumber < 0) {
 			throw new IllegalArgumentException("page number < 0 : " + requestPageNumber);
 		}
@@ -53,6 +53,41 @@ public class ListArticleService {
 			JdbcUtil.close(conn);
 		}
 	}
+	
+	public ArticleListModel getArticleList(int requestPageNumber, ) {
+		if(requestPageNumber < 0) {
+			throw new IllegalArgumentException("page number < 0 : " + requestPageNumber);
+		}
+		ArticleDao articleDao = ArticleDao.getInstance();
+		Connection conn = null;
+		try {
+			conn = ConnectionProvider.getConnection();
+			int totalArticleCount = articleDao.selectCount(conn);
+			
+			if(totalArticleCount == 0) {
+				return new ArticleListModel();
+			}
+			
+			int totalPageCount = calculateTotalPageCount(totalArticleCount);
+			
+			int firstRow = (requestPageNumber -1) * COUNT_PER_PAGE + 1;
+			int endRow = firstRow + COUNT_PER_PAGE - 1;
+			
+			if(endRow > totalArticleCount) {
+				endRow = totalArticleCount;
+			}
+			List<Article> articleList = articleDao.select(conn, firstRow, endRow);
+			
+			ArticleListModel articleListView = new ArticleListModel(articleList, requestPageNumber, totalPageCount, firstRow, endRow);
+			return articleListView;
+		} catch(SQLException e) {
+			throw new RuntimeException("DB¿¡·¯ " + e.getMessage());
+		} finally {
+			JdbcUtil.close(conn);
+		}
+	}
+	
+	
 	private int calculateTotalPageCount(int totalArticleCount) {
 		// TODO Auto-generated method stub
 		if(totalArticleCount == 0) {
